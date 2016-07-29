@@ -193,8 +193,9 @@ function prompt_garrett_precmd {
     typeset -gA perl_info
 
     if (( $+commands[perlbrew] )); then
-      version="${${"$(perlbrew list)"##*\* perl-}%%
-*}"
+      version="${PERLBREW_PERL##*perl-}"
+      #version="${${"$(perlbrew list)"##*\* perl-}%%
+#*}"
     fi
 
     # Format version.
@@ -226,51 +227,80 @@ function prompt_garrett_precmd {
     fi
   }
 
-  python-info() {
-    local version
-    local version_format
-    local version_formatted
+  if [[ "$PROMPT_SHOW_INFO_AUTO_UPDATE" == true ]] then;
+    prompt-get-info
+  fi
 
-    # Clean up previous $python_info.
-    unset python_info
-    typeset -gA python_info
+  prompt-show-info() {
+    local show="$1"
+    local info='java perl python ruby node'
 
-    if (( $+commands[pyenv] )); then
-      version="${"$(pyenv version)"%% *}"
-    fi
-
-    # Format version.
-    if [[ -n "$version" ]]; then
-      zstyle -s ':prezto:module:python:info:version' format 'version_format'
-      zformat -f version_formatted "$version_format" "v:$version"
-      python_info[version]="${version_formatted/Python }"
+    if [[ -n "$show" ]] then;
+      if [[ "$show" == 'all' ]]; then
+        PROMPT_SHOW_INFO=$info
+        prompt-get-info
+      elif [[ "$show" == 'none' ]]; then
+        prompt-clear-info
+      elif [[ "$show" == 'update' ]]; then
+        prompt-get-info
+      elif [[ "$show" == 'auto' ]]; then
+        if [[ "$PROMPT_SHOW_INFO_AUTO_UPDATE" == true ]] then;
+          echo 'Disabling auto update'
+          PROMPT_SHOW_INFO_AUTO_UPDATE=false
+        else
+          echo 'Enabling auto update; this may slow down your shell (run again to disable)'
+          PROMPT_SHOW_INFO_AUTO_UPDATE=true
+          prompt-get-info
+        fi
+      else
+        prompt-clear-info
+        PROMPT_SHOW_INFO="$show"
+        prompt-get-info
+      fi
+    else
+      echo "Please pass an option: all, none, update, auto or a subset of '${info}'"
     fi
   }
 
-  # Get Ruby info.
-  if (( $+functions[ruby-info] )); then
-    ruby-info
-  fi
+  prompt-clear-info() {
+    unset java_info
+    unset perl_info
+    unset python_info
+    unset ruby_info
+    unset node_info
+  }
 
-  # Get Python info.
-  if (( $+functions[python-info] )); then
-    python-info
-  fi
+  prompt-get-info() {
+    if [[ "$PROMPT_SHOW_INFO" =~ 'java' ]] then;
+      if (( $+functions[java-info] )); then
+        java-info
+      fi
+    fi
 
-  # Get Java info.
-  if (( $+functions[java-info] )); then
-    java-info
-  fi
+    if [[ "$PROMPT_SHOW_INFO" =~ 'perl' ]] then;
+      if (( $+functions[perl-info] )); then
+        perl-info
+      fi
+    fi
 
-  # Get Perl info.
-  if (( $+functions[perl-info] )); then
-    perl-info
-  fi
+    if [[ "$PROMPT_SHOW_INFO" =~ 'python' ]] then;
+      if (( $+functions[python-info] )); then
+        python-info
+      fi
+    fi
 
-  # Get Node info.
-  if (( $+functions[node-info] )); then
-    node-info
-  fi
+    if [[ "$PROMPT_SHOW_INFO" =~ 'ruby' ]] then;
+      if (( $+functions[ruby-info] )); then
+        ruby-info
+      fi
+    fi
+
+    if [[ "$PROMPT_SHOW_INFO" =~ 'node' ]] then;
+      if (( $+functions[node-info] )); then
+        node-info
+      fi
+    fi
+  }
 
   # Get Git repository info.
   if (( $+functions[git-info] )); then
