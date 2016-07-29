@@ -169,6 +169,119 @@ function prompt_garrett_preexec {
   print -n "$reset_color"
 }
 
+perl-info() {
+  local version
+  local version_format
+  local version_formatted
+
+  # Clean up previous $perl_info.
+  unset perl_info
+  typeset -gA perl_info
+
+  if (( $+commands[perlbrew] )); then
+    version="${PERLBREW_PERL##*perl-}"
+  fi
+
+  # Format version.
+  if [[ -n "$version" ]]; then
+    zstyle -s ':prezto:module:perl:info:version' format 'version_format'
+    zformat -f version_formatted "$version_format" "v:$version"
+    perl_info[version]="${version_formatted}"
+  fi
+}
+
+java-info() {
+  local version
+  local version_format
+  local version_formatted
+
+  # Clean up previous $java_info.
+  unset java_info
+  typeset -gA java_info
+
+  if (( $+commands[jenv] )); then
+    version="${${"$(jenv version)"##*-}%% *}"
+  fi
+
+  # Format version.
+  if [[ -n "$version" ]]; then
+    zstyle -s ':prezto:module:java:info:version' format 'version_format'
+    zformat -f version_formatted "$version_format" "v:$version"
+    java_info[version]="${version_formatted}"
+  fi
+}
+
+prompt-get-info() {
+  if [[ "$PROMPT_SHOW_INFO" =~ 'java' ]] then;
+    if (( $+functions[java-info] )); then
+      java-info
+    fi
+  fi
+
+  if [[ "$PROMPT_SHOW_INFO" =~ 'perl' ]] then;
+    if (( $+functions[perl-info] )); then
+      perl-info
+    fi
+  fi
+
+  if [[ "$PROMPT_SHOW_INFO" =~ 'python' ]] then;
+    if (( $+functions[python-info] )); then
+      python-info
+    fi
+  fi
+
+  if [[ "$PROMPT_SHOW_INFO" =~ 'ruby' ]] then;
+    if (( $+functions[ruby-info] )); then
+      ruby-info
+    fi
+  fi
+
+  if [[ "$PROMPT_SHOW_INFO" =~ 'node' ]] then;
+    if (( $+functions[node-info] )); then
+      node-info
+    fi
+  fi
+}
+
+prompt-clear-info() {
+  unset java_info
+  unset perl_info
+  unset python_info
+  unset ruby_info
+  unset node_info
+}
+
+prompt-show-info() {
+  local show="$1"
+  local info='java perl python ruby node'
+
+  if [[ -n "$show" ]] then;
+    if [[ "$show" == 'all' ]]; then
+      PROMPT_SHOW_INFO=$info
+      prompt-get-info
+    elif [[ "$show" == 'none' ]]; then
+      prompt-clear-info
+    elif [[ "$show" == 'update' ]]; then
+      prompt-get-info
+    elif [[ "$show" == 'auto' ]]; then
+      if [[ "$PROMPT_SHOW_INFO_AUTO_UPDATE" == true ]] then;
+        echo 'Disabling auto update'
+        PROMPT_SHOW_INFO_AUTO_UPDATE=false
+      else
+        echo 'Enabling auto update; this may slow down your shell (run again to disable)'
+        PROMPT_SHOW_INFO_AUTO_UPDATE=true
+        prompt-get-info
+      fi
+    else
+      prompt-clear-info
+      PROMPT_SHOW_INFO="$show"
+      prompt-get-info
+    fi
+  else
+    echo "Please pass an option: all, none, update, auto or a subset of '${info}'"
+  fi
+}
+
 # Functions called before each prompt is displayed.
 function prompt_garrett_precmd {
   setopt LOCAL_OPTIONS
@@ -183,124 +296,9 @@ function prompt_garrett_precmd {
   # Trigger a notification after x time has elapsed.
   eval prompt_garrett_precmd_notification
 
-  perl-info() {
-    local version
-    local version_format
-    local version_formatted
-
-    # Clean up previous $perl_info.
-    unset perl_info
-    typeset -gA perl_info
-
-    if (( $+commands[perlbrew] )); then
-      version="${PERLBREW_PERL##*perl-}"
-      #version="${${"$(perlbrew list)"##*\* perl-}%%
-#*}"
-    fi
-
-    # Format version.
-    if [[ -n "$version" ]]; then
-      zstyle -s ':prezto:module:perl:info:version' format 'version_format'
-      zformat -f version_formatted "$version_format" "v:$version"
-      perl_info[version]="${version_formatted}"
-    fi
-  }
-
-  java-info() {
-    local version
-    local version_format
-    local version_formatted
-
-    # Clean up previous $java_info.
-    unset java_info
-    typeset -gA java_info
-
-    if (( $+commands[jenv] )); then
-      version="${${"$(jenv version)"##*-}%% *}"
-    fi
-
-    # Format version.
-    if [[ -n "$version" ]]; then
-      zstyle -s ':prezto:module:java:info:version' format 'version_format'
-      zformat -f version_formatted "$version_format" "v:$version"
-      java_info[version]="${version_formatted}"
-    fi
-  }
-
   if [[ "$PROMPT_SHOW_INFO_AUTO_UPDATE" == true ]] then;
     prompt-get-info
   fi
-
-  prompt-show-info() {
-    local show="$1"
-    local info='java perl python ruby node'
-
-    if [[ -n "$show" ]] then;
-      if [[ "$show" == 'all' ]]; then
-        PROMPT_SHOW_INFO=$info
-        prompt-get-info
-      elif [[ "$show" == 'none' ]]; then
-        prompt-clear-info
-      elif [[ "$show" == 'update' ]]; then
-        prompt-get-info
-      elif [[ "$show" == 'auto' ]]; then
-        if [[ "$PROMPT_SHOW_INFO_AUTO_UPDATE" == true ]] then;
-          echo 'Disabling auto update'
-          PROMPT_SHOW_INFO_AUTO_UPDATE=false
-        else
-          echo 'Enabling auto update; this may slow down your shell (run again to disable)'
-          PROMPT_SHOW_INFO_AUTO_UPDATE=true
-          prompt-get-info
-        fi
-      else
-        prompt-clear-info
-        PROMPT_SHOW_INFO="$show"
-        prompt-get-info
-      fi
-    else
-      echo "Please pass an option: all, none, update, auto or a subset of '${info}'"
-    fi
-  }
-
-  prompt-clear-info() {
-    unset java_info
-    unset perl_info
-    unset python_info
-    unset ruby_info
-    unset node_info
-  }
-
-  prompt-get-info() {
-    if [[ "$PROMPT_SHOW_INFO" =~ 'java' ]] then;
-      if (( $+functions[java-info] )); then
-        java-info
-      fi
-    fi
-
-    if [[ "$PROMPT_SHOW_INFO" =~ 'perl' ]] then;
-      if (( $+functions[perl-info] )); then
-        perl-info
-      fi
-    fi
-
-    if [[ "$PROMPT_SHOW_INFO" =~ 'python' ]] then;
-      if (( $+functions[python-info] )); then
-        python-info
-      fi
-    fi
-
-    if [[ "$PROMPT_SHOW_INFO" =~ 'ruby' ]] then;
-      if (( $+functions[ruby-info] )); then
-        ruby-info
-      fi
-    fi
-
-    if [[ "$PROMPT_SHOW_INFO" =~ 'node' ]] then;
-      if (( $+functions[node-info] )); then
-        node-info
-      fi
-    fi
-  }
 
   # Get Git repository info.
   if (( $+functions[git-info] )); then
