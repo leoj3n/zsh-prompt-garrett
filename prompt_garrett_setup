@@ -190,27 +190,6 @@ perl-info() {
   fi
 }
 
-java-info() {
-  local version
-  local version_format
-  local version_formatted
-
-  # Clean up previous $java_info.
-  unset java_info
-  typeset -gA java_info
-
-  if (( $+commands[jenv] )); then
-    version="${${"$(jenv version)"##*-}%% *}"
-  fi
-
-  # Format version.
-  if [[ -n "$version" ]]; then
-    zstyle -s ':prezto:module:java:info:version' format 'version_format'
-    zformat -f version_formatted "$version_format" "v:$version"
-    java_info[version]="${version_formatted}"
-  fi
-}
-
 prompt-get-info() {
   if [[ "$PROMPT_SHOW_INFO" =~ 'java' ]] then;
     if (( $+functions[java-info] )); then
@@ -252,7 +231,7 @@ prompt-clear-info() {
 }
 
 prompt-show-info() {
-  local show="$1"
+  local show="$@"
   local info='java perl python ruby node'
 
   if [[ -n "$show" ]] then;
